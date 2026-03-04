@@ -1,50 +1,38 @@
-import asyncio
-from config import Config, load_config
-from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, FSInputFile
-from pathlib import Path
-
-config: Config = load_config()
-bot_token = config.bot.token
-bot = Bot(token=bot_token)
-dp = Dispatcher()
-
-# #домашняя папка пользователя
-# HOME_DIR = Path.home()
-# #рабочий стол
-# DESKTOP_DIR = HOME_DIR / 'Desktop'
-# #папка downloads
-# DOWNLOAD_DIR = HOME_DIR / 'downloads'
-
-# @dp.message(F.photo)
-# async def download_photo(message: Message, bot: Bot):
-#     photo = message.photo[-1]
-#     file = await bot.get_file(photo.file_id)
-#     await bot.download_file(file.file_path, "/")
-
-@dp.message(F.photo)
-async def send_photo_url(message: Message):
-    # photo = "https://glstatic.rg.ru/uploads/images/2016/03/05/86a8c745a45790e.jpg"
-    # await message.answer_photo(
-    #     photo,
-    #     caption= "Фото кота"
-    # )
-    #отправка локального файла
-    # photo = FSInputFile("files/test_1.jpg")
-    # file = await bot.get_file(photo.file_id)
-    # await message.reply_photo(
-    #     photo = photo,
-    #     caption = "Вот сохранённое фото"
-    # )
-@dp.message(F.photo)
-async def reply_photo(message: Message):
-    photo = message.photo[-1]
-    await message.answer_photo(
-        photo = photo.file_id,
-        caption = "Не присылай больше"
-    )
+# import config
+# config.BOT_TOKEN
+from config import BOT_TOKEN
+from aiogram import Bot, Dispatcher
+from aiogram.filters import Command
+from aiogram.types import Message
+from asyncio import run
+from requests import get
 async def main():
+    bot = Bot(token = BOT_TOKEN)
+    dp = Dispatcher()
+    # https://catfact.ninja/fact
+    @dp.message(Command(commands = ['catfact']))
+    async def get_cat_fact(message: Message):
+        print(f"[LOG] пользователь {message.from_user.id} нажал команду /catfact")
+        print(f"[LOG] запрашиваю факт о котах")
+        response = get("https://catfact.ninja/fact")
+        print(f"[LOG] Получен результат со статусом {response.status_code}")
+        response_json = response.json()
+        print(response_json["fact"])
+        await message.answer(response_json["fact"])
+    @dp.message(Command(commands=['start']))
+    async def start_handler(message: Message):
+        print(f"[LOG] пользователь {message.from_user.id} нажал кнопку /start")
+        await message.answer(f"Привет {message.from_user.full_name}")
+    @dp.message(Command(commands=['breeds']))
+    async def send_breed(message: Message):
+        response = get("https://catfact.ninja/breeds")
+        response_json = response.json()
+        print(response_json["data"][0]["country"])
+        print(response_json["data"][0]["breed"])
+    @dp.message()
+    async def send_other_message(message: Message):
+        await message.answer("Ты мне надоел, хватит присылать какой-то бред!!")
+        print(f"[LOG] пользователь получил ответ")
     await dp.start_polling(bot)
-
-if __name__ == '__main__':
-    asyncio.run(main())
+print("[LOG] Бот запущен")
+run(main()) #запускает цикла событий (dp)
