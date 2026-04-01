@@ -2,71 +2,85 @@ from config import BOT_TOKEN
 from aiogram import Bot, Dispatcher
 from asyncio import run
 from aiogram import F
-from aiogram.types import Message
-import os
+from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, \
+    CallbackQuery
+from aiogram.filters import Command
 async def main():
     bot = Bot(token = BOT_TOKEN)
     dp = Dispatcher()
 
-    # @dp.message(F.photo)
-    # async def get_photo(message: Message, bot: Bot):
-    #     print(f"[LOG] пользователь {message.from_user.id} вызвал функцию get_photo")
-    #     photo = message.photo[-1]
-    #     file = await bot.get_file(photo.file_id)
-    #     print(f"[LOG] получение файла {file.file_unique_id}")
-    #     PATH = os.path.join("files", f"{file.file_unique_id}.jpg")
-    #     print(PATH)
-    #     await bot.download_file(file.file_path, destination=PATH)
-    #     print(f"[LOG] сохранение файла {PATH}")
-    #     await message.answer("Крутое фото")
 
-        # @dp.message(F.video)
-        # async def get_photo(message: Message, bot: Bot):
-        #     print(f"[LOG] пользователь {message.from_user.id} вызвал функцию get_photo")
-        #     video = message.video
-        #     file = await bot.get_file(video.file_id)
-        #     print(f"[LOG] получение файла {file.file_unique_id}")
-        #     PATH = os.path.join("files", f"{file.file_unique_id}.mp4")
-        #     await bot.download_file(file.file_path, destination=PATH)
-        #     print(f"[LOG] сохранение файла {PATH}")
-        #     await message.answer("Крутое видео")
+    start_test_btn = KeyboardButton(
+        text = "Начать тест"
+    )
+    menu_buttons = ReplyKeyboardMarkup(
+        keyboard = [[start_test_btn]]
+    )
+    questions = [
+        {"Кто выиграл чемпионат мира по футболу в 2022 году?":
+             {"Аргентина": True,
+              "Испания": False,
+              "Франция": False
+              }
+         },
+        {"В каком году произошло крещение Руси?": "988 год"},
+        {"Кто был последним императором Римской империи перед её падением?": "Флавий Ромул Август"}
+    ]
+    counter = 0
+    @dp.message(Command(commands="start"))
+    async def start_handler(message: Message):
+        await message.answer(
+            "Начинаем тест, нажмите начать тест",
+            reply_markup = menu_buttons
+        )
+    @dp.message(F.text == "Начать тест")
+    async def start_test_handler(message: Message):
+        counter = 0
+        answ = list(questions[counter].keys())
+        text = list(questions[0].values())[0]
+        answ_1_btn = InlineKeyboardButton(
+            text = text,
+            callback_data = "question"
+        )
+        answ_keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[answ_1_btn]]
+        )
+        await message.answer(
+            answ[0],
+            reply_markup = answ_keyboard
+        )
+    @dp.callback_query(F.data.startswith("question"))
+    async def answ_handler(callback: CallbackQuery):
+        nonlocal counter
+        counter += 1
+        answ = list(questions[counter].keys())[0]
+        text = list(questions[counter].values())[0]
+        answ_1_btn = InlineKeyboardButton(
+            text=text,
+            callback_data="question"
+        )
+        answ_keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[answ_1_btn]]
+        )
+        await callback.message.answer(
+            text = answ,
+            reply_markup = answ_keyboard
+        )
 
-    @dp.message(F.photo | F.video)
-    async def get_photo(message: Message, bot: Bot):
-        os.makedirs("downloads", exist_ok=True)
-        if message.photo:
-            file = await bot.get_file(message.photo[-1].file_id)
-            PATH = os.path.join("downloads", f"{file.file_unique_id}.jpg")
-        else:
-            file = await bot.get_file(message.video.file_id)
-            PATH = os.path.join("downloads", f"{file.file_unique_id}.mp4")
-        await bot.download_file(file.file_path, destination=PATH)
-        await message.answer("Крутые фото или видео")
 
-    # # https://catfact.ninja/fact
-    # @dp.message(Command(commands = ['catfact']))
-    # async def get_cat_fact(message: Message):
-    #     print(f"[LOG] пользователь {message.from_user.id} нажал команду /catfact")
-    #     print(f"[LOG] запрашиваю факт о котах")
-    #     response = get("https://catfact.ninja/fact")
-    #     print(f"[LOG] Получен результат со статусом {response.status_code}")
-    #     response_json = response.json()
-    #     print(response_json["fact"])
-    #     await message.answer(response_json["fact"])
-    # @dp.message(Command(commands=['start']))
-    # async def start_handler(message: Message):
-    #     print(f"[LOG] пользователь {message.from_user.id} нажал кнопку /start")
-    #     await message.answer(f"Привет {message.from_user.full_name}")
-    # @dp.message(Command(commands=['breeds']))
-    # async def send_breed(message: Message):
-    #     response = get("https://catfact.ninja/breeds")
-    #     response_json = response.json()
-    #     print(response_json["data"][0]["country"])
-    #     print(response_json["data"][0]["breed"])
-    # @dp.message()
-    # async def send_other_message(message: Message):
-    #     await message.answer("Ты мне надоел, хватит присылать какой-то бред!!")
-    #     print(f"[LOG] пользователь получил ответ")
+
+
+
+
+
+
+
+
+
+
+
+
+
     await dp.start_polling(bot)
 print("[LOG] Бот запущен")
 run(main()) #запускает цикла событий (dp)
